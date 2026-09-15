@@ -1,162 +1,183 @@
-# Dual-Timescale Behaviour Modelling for Customer Conversion Prediction Using Hybrid Deep Learning Models in Loyalty and Subscription-Based Systems
+# Dual-Timescale Behaviour Modelling for Customer Conversion Prediction
+
+This repository contains the reproducibility materials accompanying the study:
+
+**Dual-Timescale Behaviour Modelling for Customer Conversion Prediction Using Hybrid Deep Learning Models in Loyalty and Subscription-Based Systems**
+
+The study proposes a hybrid Dual-Timescale deep learning framework that combines short-term sequential customer behaviour with long-term cumulative behavioural history for predicting subsequent observed purchase behaviour.
 
 ## Overview
 
-This repository contains the reproducibility materials associated with
-the research paper **"Dual-Timescale Behaviour Modelling for Customer
-Conversion Prediction Using Hybrid Deep Learning Models in Loyalty and
-Subscription-Based Systems."**
+Customer behaviour develops across multiple temporal scales. Recent transactions may capture immediate behavioural patterns, while cumulative purchase history represents longer-term engagement.
 
-The study evaluates a hybrid deep learning framework combining
-**short-term behavioural dynamics** modelled with an LSTM and
-**long-term cumulative engagement history** modelled with a fully
-connected neural network (FCNN). These representations are fused in the
-proposed **Dual-Timescale model** for customer continuation prediction.
+The proposed framework integrates both sources of information through:
+
+- a Short-Term LSTM encoder for sequential transactional behaviour;
+- a Long-Term fully connected neural network (FCNN) encoder for cumulative behavioural features; and
+- a fusion layer that combines both representations for binary prediction.
+
+The proposed Dual-Timescale model is evaluated against traditional machine-learning baselines and single-timescale neural architectures.
 
 ## Prediction Target
 
-The prediction task is defined as **subsequent observed purchase
-behaviour**:
+In this study, the binary target represents **subsequent observed purchase behaviour**:
 
--   `y = 1` if another observed order follows the current order.
--   `y = 0` if the current order is the customer's final observed order
-    in the dataset.
+- **y = 1:** the current order is followed by another observed order from the same customer;
+- **y = 0:** the current order is the customer's final observed order in the dataset.
 
-The task is therefore best interpreted as **repeat-order /
-purchase-continuation prediction**, rather than conventional first-time
-customer acquisition.
+Accordingly, the task is most precisely interpreted as **repeat-order or purchase-continuation prediction**, rather than first-time customer acquisition.
 
+The term *conversion* is retained in the accompanying study to describe continued transactional engagement and its potential relevance to retention-oriented loyalty and subscription settings.
 
 ## Dataset
 
-The experiments use the **Instacart Online Grocery Shopping Dataset**,
-containing more than three million orders from more than 200,000 users.
+Experiments use the **Instacart Online Grocery Shopping Dataset**, originally released for the Instacart Market Basket Analysis challenge.
 
-The Instacart data do not contain explicit loyalty-program or
-subscription-status variables. Repeated transactional engagement is used
-as a behavioural proxy for persistence and retention. Generalisation to
-datasets containing explicit loyalty or subscription information remains
-an area for future validation.
+The dataset contains more than three million grocery orders from over 200,000 customers and provides repeated customer-level transaction histories suitable for temporal behavioural modelling.
 
-Repeated customer-level transactions make the dataset suitable for
-constructing both sequential short-term behaviour and cumulative
-long-term behavioural history.
+The raw dataset is **not redistributed in this repository**.
 
-### Data availability
+To reproduce the experiments, obtain the Instacart dataset separately and provide the following files:
 
-The raw Instacart dataset is **not redistributed in this repository**.
-Users should obtain the original Instacart Market Basket Analysis data
-from its authorised public source and place the required files in the
-local data location specified by the notebook.
+```text
+orders.csv
+order_products__prior.csv
+order_products__train.csv
+products.csv
+aisles.csv
+departments.csv
+```
 
-## Behavioural Features
+Place the files inside a local `data/` directory or configure the data path as described in the reproducibility notebook.
 
-### Short-term sequential features
+The Instacart dataset does not contain explicit loyalty-program membership or subscription-status variables. It is therefore used as a behavioural testbed for repeated purchasing and continued engagement rather than as direct evidence of formal loyalty or subscription participation.
 
--   `order_dow`
--   `order_hour_of_day`
--   `days_since_prior_order`
--   `basket_size`
--   `reorder_ratio`
+## Model Architecture
 
-The primary sequence length is capped at the most recent **T = 50
-orders**.
+The Dual-Timescale architecture contains two parallel branches.
 
-### Long-term cumulative features
+### Short-Term Branch
 
--   `cum_order_count`
--   `cum_avg_days`
--   `cum_std_days`
--   `cum_avg_basket`
--   `cum_std_basket`
--   `cum_reorder_ratio`
+The short-term branch uses an LSTM with 64 hidden units to model sequential order-level behaviour.
 
-These variables summarise accumulated behavioural history available up
-to each prediction point.
+Short-term features include:
 
-## Models
+- order day of week;
+- order hour of day;
+- days since prior order;
+- basket size; and
+- reorder ratio.
 
-### Traditional machine-learning baselines
+### Long-Term Branch
 
--   Logistic Regression
--   Random Forest
--   Gradient Boosting
+The long-term branch uses a fully connected neural network with 64 hidden units, ReLU activation, and dropout of 0.20.
 
-### Deep-learning models
+Long-term features include:
 
--   **Short-only LSTM** --- sequential short-term behaviour.
--   **Long-only FCNN** --- cumulative long-term behavioural features.
--   **Dual-Timescale model** --- fusion of the LSTM short-term
-    representation and FCNN long-term representation.
+- cumulative order count;
+- cumulative average days between orders;
+- cumulative standard deviation of inter-order intervals;
+- cumulative average basket size;
+- cumulative standard deviation of basket size; and
+- cumulative reorder ratio.
 
-The primary Dual-Timescale architecture uses an LSTM hidden dimension of
-64, a 64-unit long-term dense representation, ReLU activation, dropout
-of 0.2, and a 64-unit fusion layer.
+These features are calculated cumulatively from the customer's available order history rather than from a fixed-length long-term window.
 
-## Training and Evaluation
+### Fusion
 
-The primary protocol uses a **user-level holdout split**, preventing
-orders belonging to the same user from appearing across training and
-test partitions.
+The 64-dimensional short-term and 64-dimensional long-term representations are concatenated and passed through a 64-unit fusion layer before binary prediction.
 
-Class imbalance is handled through **training-only random
-undersampling**, producing a 75% positive / 25% negative training
-distribution. The test set retains its natural class distribution.
+## Experimental Configuration
 
-Primary neural-network settings:
+The primary experimental configuration uses:
 
--   Random seed: `42`
--   Optimizer: Adam
--   Learning rate: `0.001`
--   Batch size: `64`
--   Primary sequence cap: `T = 50`
--   Primary holdout training epochs: `10`
--   Fixed classification threshold: `0.50`
+| Setting | Value |
+|---|---|
+| Random seed | 42 |
+| Primary maximum sequence length (T) | 50 |
+| LSTM hidden units | 64 |
+| Long-term hidden units | 64 |
+| Fusion hidden units | 64 |
+| Dropout | 0.20 |
+| Optimizer | Adam |
+| Learning rate | 0.001 |
+| Batch size | 64 |
+| Primary holdout epochs | 10 |
+| Cross-validation folds | 10 |
+| Cross-validation epochs per fold | 5 |
+| Decision threshold | 0.50 |
 
-Evaluation metrics include ROC-AUC, PR-AUC, Precision, Recall, F1-score,
-and Matthews Correlation Coefficient (MCC).
+The primary train/test split is performed at the **user level** to prevent the same customer's records from appearing in both training and holdout partitions.
 
-## Cross-Validation and Statistical Analysis
+Training data are rebalanced to a 75/25 class distribution using random undersampling, while the holdout test set retains its natural class distribution.
 
-Robustness is evaluated using **10-fold GroupKFold cross-validation**,
-grouped by `user_id`. Training-fold data are balanced using the same
-training-only undersampling procedure, while validation folds retain
-their natural class distribution.
+The cross-validation analysis uses **10-fold GroupKFold** with `user_id` as the grouping variable.
 
-The Dual-Timescale model is statistically compared with the strongest
-traditional baseline using fold-wise ROC-AUC values, a paired t-test,
-and a bootstrap 95% confidence interval.
+## Models Evaluated
 
-The notebook includes checkpoint-safe handling for the computationally
-intensive baseline cross-validation stage so completed model-fold
-evaluations can be preserved if execution is interrupted.
+Traditional machine-learning baselines:
 
-## Additional Analyses
+- Logistic Regression
+- Random Forest
+- Gradient Boosting
 
-The notebook includes:
+Neural architectures:
 
--   Architectural ablation comparing Short-only, Long-only, and
-    Dual-Timescale models.
--   Retrospective sequence-length sensitivity analysis for
-    `T = 5, 10, 20, 30, 50`.
--   Class-weighted robustness analysis.
--   Correlation analysis of engineered long-term features.
--   Feature importance analysis for the Gradient Boosting baseline.
--   SHAP analysis for the Gradient Boosting baseline.
+- Short-only LSTM
+- Long-only FCNN
+- Dual-Timescale model
 
-The SHAP analysis explains the engineered long-term behavioural features
-used by the Gradient Boosting baseline. It does **not** directly explain
-the internal temporal representations learned by the LSTM or the
-complete Dual-Timescale fusion architecture.
+## Primary Results
+
+On the natural-distribution holdout test set, the proposed Dual-Timescale model achieved:
+
+| Metric | Dual-Timescale |
+|---|---:|
+| ROC-AUC | 0.8750 |
+| PR-AUC | 0.9890 |
+| F1-score | 0.9784 |
+| MCC | 0.5855 |
+
+The strongest traditional baseline, Gradient Boosting, achieved a holdout ROC-AUC of **0.8413**.
+
+Under 10-fold GroupKFold validation:
+
+- Dual-Timescale ROC-AUC: **0.8710 ± 0.0034**
+- Gradient Boosting ROC-AUC: **0.8414 ± 0.0016**
+- Mean ROC-AUC improvement: **0.0296**
+- Paired t-test: **p < 0.001**
+- Bootstrap 95% CI for the ROC-AUC improvement: **[0.0279, 0.0314]**
+
+See [`results/README.md`](results/README.md) for a more detailed summary of the reported results and supplementary analyses.
+
+## Ablation and Sensitivity Analysis
+
+The repository also includes analyses examining the contribution of the two temporal branches.
+
+The primary holdout ROC-AUC values were:
+
+- Dual-Timescale: **0.8750**
+- Short-only LSTM: **0.8515**
+- Long-only FCNN: **0.8230**
+
+A retrospective sequence-length sensitivity analysis evaluates `T = 5, 10, 20, 30, 50`.
+
+This sensitivity analysis is supplementary. The primary holdout configuration remains **T = 50** and was not retuned using the holdout test set.
+
+## Explainability
+
+SHAP analysis is applied to the **Gradient Boosting baseline** using the engineered long-term behavioural features.
+
+The SHAP analysis provides feature-level interpretability for these cumulative variables. It does **not** directly explain the internal temporal representations learned by the LSTM or the complete Dual-Timescale fusion architecture.
 
 ## Repository Structure
 
-``` text
-dual-timescale-behaviour-modelling/
+```text
+Dual-Timescale-Conversion-Prediction/
 │
 ├── README.md
-├── DualTimescale_Reproducibility.ipynb
 ├── requirements.txt
+├── DualTimescale_Reproducibility.ipynb
 │
 ├── data/
 │   └── README.md
@@ -165,62 +186,80 @@ dual-timescale-behaviour-modelling/
     └── README.md
 ```
 
+The raw Instacart data are intentionally excluded from the repository.
 
-## Software Environment
+## Reproducibility
 
-The experiments were developed using **Python 3.10.19**. Main libraries
-include NumPy, pandas, scikit-learn, PyTorch, SciPy, SHAP, and
-Matplotlib.
+The repository provides the experimental notebook, environment requirements, implementation details, evaluation procedures, and reference outputs associated with the revised manuscript.
 
-Exact package requirements are provided in `requirements.txt`.
+The reproducibility notebook covers:
 
-## Running the Reproducibility Notebook
+1. data loading and preprocessing;
+2. target construction;
+3. short- and long-term feature engineering;
+4. exploratory analysis;
+5. user-level train/test splitting;
+6. traditional machine-learning baselines;
+7. Short-only, Long-only, and Dual-Timescale neural models;
+8. holdout evaluation;
+9. 10-fold GroupKFold validation;
+10. statistical significance testing;
+11. sequence-length sensitivity analysis;
+12. class-imbalance robustness analysis; and
+13. Gradient Boosting feature-importance and SHAP analysis.
 
-1.  Obtain the Instacart source data.
-2.  Clone or download this repository.
-3.  Create a Python environment and install the packages in
-    `requirements.txt`.
-4.  Place the required Instacart source files in the data location
-    specified in the notebook.
-5.  Open `DualTimescale_Reproducibility.ipynb`.
-6.  Review the configuration/path cell.
-7.  Run the notebook sequentially from the beginning.
-8.  Allow the computationally intensive cross-validation and
-    deep-learning sections to complete.
-9.  Review the generated tables, figures, and result files in the
-    configured output directories.
+### Reproducibility Status
 
-### Runtime note
+The notebook has been executed through the complete experimental workflow and contains reference outputs corresponding to the results reported in the revised manuscript.
 
-Some stages, particularly 10-fold cross-validation and repeated
-neural-network training, can require substantial execution time. Runtime
-depends on hardware and available computational resources.
+Numerical differences may occur across hardware, operating systems, library builds, and stochastic deep-learning operations. Execution times are hardware-dependent.
 
-## Reproducibility Notes
+## Environment
 
-NumPy and PyTorch random seeds are set to `42` for the primary
-experiments. The notebook uses user-level splitting and grouped
-cross-validation to reduce leakage between customer histories.
+The reported experiments were conducted using:
 
-Sequence-length sensitivity is a retrospective validation analysis. The
-primary `T = 50` holdout experiment is retained as the predefined main
-experiment and is not retuned using the holdout set.
+- Python 3.10.19
+- NumPy 2.2.5
+- pandas 2.3.3
+- Matplotlib 3.10.8
+- SciPy 1.15.3
+- scikit-learn 1.7.1
+- PyTorch 2.10.0
+- SHAP 0.49.1
 
-## Results
+Install the required Python packages using:
 
-The repository is intended to reproduce the experimental workflow and
-analyses reported in the associated manuscript.
+```bash
+pip install -r requirements.txt
+```
+
+## Running the Notebook
+
+1. Clone or download this repository.
+2. Install the dependencies listed in `requirements.txt`.
+3. Obtain the Instacart dataset separately.
+4. Place the required CSV files in the local `data/` directory, or configure `INSTACART_DATA_DIR`.
+5. Open `DualTimescale_Reproducibility.ipynb`.
+6. Run the notebook sequentially from the beginning.
+
+Generated outputs are written to the configured output directory.
+
+## Code and Data Availability
+
+The implementation and reproducibility materials are publicly available through this repository.
+
+The Instacart dataset is not redistributed and must be obtained separately from its original source.
 
 ## Citation
 
-If you use this code or methodology in academic work, please cite the
-associated paper. Full journal citation details will be added after
-publication.
+If you use this repository, please cite the accompanying research article.
 
-## Code Availability
+Full publication details will be added after publication.
 
-The reproducibility notebook, environment information, and supporting
-instructions are provided in this repository to support transparent
-evaluation and replication of the study.
+## Authors
 
+**Mehwish Iqra Taha**, Muneer Ahmad, Seyed Ebrahim Hosseini, Shahbaz Pervez, Mohsin Iftikhar, and Peer Azmat Shah.
 
+## Research Use
+
+This repository is provided to support research transparency and reproducibility associated with the accompanying study.
