@@ -172,7 +172,7 @@ The experiments were developed using **Python 3.10.19**. Main libraries
 include NumPy, pandas, scikit-learn, PyTorch, SciPy, SHAP, and
 Matplotlib.
 
-Exact package requirements will be provided in `requirements.txt`.
+Exact package requirements are provided in `requirements.txt`.
 
 ## Running the Reproducibility Notebook
 
