@@ -256,10 +256,6 @@ If you use this repository, please cite the accompanying research article.
 
 Full publication details will be added after publication.
 
-## Authors
-
-**Mehwish Iqra Taha**, Muneer Ahmad, Seyed Ebrahim Hosseini, Shahbaz Pervez, Mohsin Iftikhar, and Peer Azmat Shah.
-
 ## Research Use
 
 This repository is provided to support research transparency and reproducibility associated with the accompanying study.
